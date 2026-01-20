@@ -18,7 +18,7 @@ let points1 = [];
 let vel1 = [];
 let cells1 = [];
 
-let nPoints2 = 200;
+let nPoints2 = 80;
 let points2 = [];
 let cells2 = [];
 
@@ -45,6 +45,7 @@ new p5( function ( sketch ) {
 
   sketch.draw = function() {
 
+    // update canvas size
     if (this.windowHeight > this.windowWidth) {
       boxW = this.windowWidth-40;
       boxH = (this.windowHeight-150)/2;
@@ -54,26 +55,11 @@ new p5( function ( sketch ) {
     }
     this.resizeCanvas(boxW, boxH);
 
-    // update points
-    for (let i=1; i<points1.length; i++) {
-      points1[i][0] += vel1[i][0];
-      points1[i][1] += vel1[i][1];
-      if (points1[i][0]<0) points1[i][0] = 1;
-      if (points1[i][0]>1) points1[i][0] = 0;
-      if (points1[i][1]<0) points1[i][1] = 1;
-      if (points1[i][1]>1) points1[i][1] = 0;
-    }
-    points1[0] = [this.mouseX/boxW, this.mouseY/boxH];
-    if (points1[0][0]<0) points1[0][0] = 0;
-    if (points1[0][0]>1) points1[0][0] = 1;
-    if (points1[0][1]<0) points1[0][1] = 0;
-    if (points1[0][1]>1) points1[0][1] = 1;
-
-    // calculate cells
+    physicalSimulation(points1, vel1);
+    handlePointsOutOfRange(points1, this, boxW, boxH);
     cells1 = calcCells(points1, box);
 
     drawVoronoi(points1, cells1, boxW, boxH, this);
-
     // points
     this.strokeWeight(0);
     this.fill("#FF7F7F");
@@ -276,4 +262,42 @@ function drawVoronoi(points, cells, boxW, boxH, sketch) {
       sketch.line(cellShow[j][0]*boxW, cellShow[j][1]*boxH, cellShow[j+1][0]*boxW, cellShow[j+1][1]*boxH);
     }
   }
+}
+
+function physicalSimulation(points, vel) {
+  for (let i=0; i<points.length; i++) {
+    let acc1_ = [0,0]; // repulsion between each points
+    for (let j=0; j<points.length; j++) {
+      if (i != j) {
+        let acc1j_diff = math.subtract(points[i], points[j]);
+        let acc1j_mag = 0.0001/math.norm(acc1j_diff)**2;
+        let acc1j_dir = normalize(acc1j_diff);
+        acc1_ = math.add(acc1_, math.multiply(acc1j_mag, acc1j_dir));
+      }
+    }
+    let acc2_ = math.multiply(-1, vel[i]); // damping with respect to velocity
+    let acc3_ = math.multiply(0.01, math.subtract([0.5,0.5], points[i])); // gravity to center
+    let acc = [0,0];
+    acc[0] += acc1_[0] + acc2_[0] + acc3_[0];
+    acc[1] += acc1_[1] + acc2_[1] + acc3_[1];
+    vel[i] = math.add(vel[i], acc);
+    points[i] = math.add(points[i], vel[i]);
+  }
+}
+
+function handlePointsOutOfRange(points, sketch, boxW, boxH) {
+  // warp points to opposite edge
+  for (let i=1; i<points.length; i++) {
+    if (points[i][0]<0) points[i][0] = 1;
+    if (points[i][0]>1) points[i][0] = 0;
+    if (points[i][1]<0) points[i][1] = 1;
+    if (points[i][1]>1) points[i][1] = 0;
+  }
+
+  // mouse point
+  points[0] = [sketch.mouseX/boxW, sketch.mouseY/boxH];
+  if (points[0][0]<0) points[0][0] = 0;
+  if (points[0][0]>1) points[0][0] = 1;
+  if (points[0][1]<0) points[0][1] = 0;
+  if (points[0][1]>1) points[0][1] = 1;
 }
