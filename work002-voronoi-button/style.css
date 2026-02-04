@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=MuseoModerno:wght@300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap');
+
+body {
+  background-color: #3F3F3F !important;
+  font-family: 'Roboto', sans-serif;
+}
+
+header {
+  font-family: 'MuseoModerno';
+}
+
+.canvases {
+  gap: 20px;
+}
+
+.text-div {
+  margin: 0px 20px;
+}
