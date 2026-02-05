@@ -1,226 +1,236 @@
-
-const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-const BOX = [
-  [0, 0],
-  [1, 0],
-  [1, 1],
-  [0, 1]
-];
-const colorSelected = "#FFFFFFCF";
-
-let nCells = 1;
-let colors = [];
-let srcs = [];
-let links = [];
-let width = 400;
-let height = 400;
-
-let polygonList = [];
-let imageList = [];
-
-let cells;
-let points = [];
-let vel = [];
-
-let mouX = 0;
-let mouY = 0;
-let isOnButton = false;
-let isDOMContentLoaded = false;
-let isChangingAttribute = false;
-let isSetAttributeInitially = false;
-let currentIndex = 0;
-
 document.addEventListener('DOMContentLoaded',
   function() {
-    isDOMContentLoaded = true;
+    VoronoiButton.isDOMContentLoaded = true;
   }
 );
 
 class VoronoiButton extends HTMLElement{
 
+  // static parameters
+  static box = [
+    [0, 0],
+    [1, 0],
+    [1, 1],
+    [0, 1]
+  ];
+  static isDOMContentLoaded = false;
+
   constructor(){
+
     super();
+
+    // member parameters
+    ////////////////////////////////////////
+
+    // parameters set in HTML
+    this.nCells = 1;
+    this.colors = [];
+    this.colorSelected = '#FFFFFFCF';
+    this.srcs = [];
+    this.links = [];
+    this.width = 100;
+    this.height = 40;
+    this.borderRadius = 2;
+    this.thresholdSim = 0.001;
+
+    // HTML elements
+    this.div = document.createElement('div');
+    this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    this.polygonList = [];
+    this.imageList = [];
+
+    // voronoi data
+    this.cells;
+    this.points = [];
+    this.vel = [];
+
+    // state parameters
+    this.mouX = 0;
+    this.mouY = 0;
+    this.isOnButton = false;
+    this.isChangingAttribute = false;
+    this.isSetAttributeInitially = false;
+    this.index = 0;
+
+    //////////////////////////////////////////////////////
+
     const shadow = this.attachShadow({ mode: 'open' });
-    shadow.appendChild(svg);
+    shadow.appendChild(this.div);
+    this.div.appendChild(this.svg);
 
-    svg.setAttribute('width', '100%');
-    svg.setAttribute('height', '100%');
+    this.div.style.width = this.width + 'px';
+    this.div.style.height = this.height + 'px';
+    this.div.style.overflow = 'hidden';
+    this.div.style.borderRadius = this.borderRadius + 'px';
 
-    svg.addEventListener('mouseover', () => {
-      isOnButton = true;
+    this.svg.style.width = '100%';
+    this.svg.style.height = '100%';
+
+    this.svg.addEventListener('mouseover', () => {
+      this.isOnButton = true;
     });
 
-    svg.addEventListener('mouseleave', () => {
-      for (let i=0; i<nCells; i++) {
-        polygonList[i].setAttribute('fill', colors[i%colors.length]);
+    this.svg.addEventListener('mouseleave', () => {
+      for (let i=0; i<this.nCells; i++) {
+        this.polygonList[i].setAttribute('fill', this.colors[i%this.colors.length]);
       }
-      isOnButton = false;
+      this.isOnButton = false;
     });
 
-    svg.addEventListener('click', (e) => {
-      window.open(
-        links[currentIndex%links.length],
-        'popup'
-      );
-    });
-
-    svg.addEventListener('mousemove', (e) => {
+    this.svg.addEventListener('mousemove', (e) => {
       const rect = e.target.getBoundingClientRect();
-      mouX = e.clientX - rect.left;
-      mouY = e.clientY - rect.top;
+      this.mouX = e.clientX - rect.left;
+      this.mouY = e.clientY - rect.top;
 
-      if (isOnButton) {
-        for (let i=0; i<nCells; i++) {
-          if (isInside([mouX/width, mouY/width], cells[i])) {
-            polygonList[i].setAttribute('fill', colorSelected);
-            currentIndex = i;
+      if (this.isOnButton) {
+        for (let i=0; i<this.nCells; i++) {
+          if (isInside([this.mouX/this.width, this.mouY/this.height], this.cells[i])) {
+            this.polygonList[i].setAttribute('fill', this.colorSelected);
+            this.index = i;
           } else {
-            polygonList[i].setAttribute('fill', colors[i%colors.length]);
+            this.polygonList[i].setAttribute('fill', this.colors[i%this.colors.length]);
           }
         }
       }
     });
 
-    while (polygonList.length<nCells) {
-      createElements();
+    while (this.polygonList.length<this.nCells) {
+      this.createElements();
     }
 
-
-
-    
-    requestAnimationFrame(animate);
+    requestAnimationFrame(this.animate);
   }
 
   attributeChangedCallback(name, oldValue, newValue){
-    isChangingAttribute = true;
-    if (name === 'n'){
-      nCells = newValue;
 
-      // generate position and velocity
-      let r = resetParams(nCells);
-      points = r.points;
-      vel = r.vel;
-      cells = r.cells;
+    this.isChangingAttribute = true;
 
-      while (polygonList.length>nCells) {
-        removeElements();
+    if (name === 'n-cells'){
+      this.nCells = newValue;
+
+      this.resetVoronoiData();
+
+      while (this.polygonList.length>this.nCells) {
+        this.removeElements();
       }
 
-      while (polygonList.length<nCells) {
-        createElements();
-        let i = polygonList.length-1;
-        setAttributes(i);
+      while (this.polygonList.length<this.nCells) {
+        this.createElements();
+        this.setAttributes(this.polygonList.length-1);
       }
+
     } else if (name === 'colors') {
-      colors = newValue.replace(' ', '').split(',');
-      for (let i=0; i<nCells; i++) {
-        polygonList[i].setAttributeNS('http://www.w3.org/1999/xlink','href',colors[i%colors.length]);
+      this.colors = newValue.replace(' ', '').split(',');
+      for (let i=0; i<this.nCells; i++) {
+        this.polygonList[i].setAttributeNS('http://www.w3.org/1999/xlink','href', this.colors[i%this.colors.length]);
       }
+    } else if (name === 'color-selected') {
+      this.colorSelected = newValue;
     } else if (name === 'srcs') {
-      srcs = newValue.replace(' ', '').split(',');
-      for (let i=0; i<nCells; i++) {
-        imageList[i].setAttributeNS('http://www.w3.org/1999/xlink','href',srcs[i%srcs.length]);
+      this.srcs = newValue.replace(' ', '').split(',');
+      for (let i=0; i<this.nCells; i++) {
+        this.imageList[i].setAttributeNS('http://www.w3.org/1999/xlink','href', this.srcs[i%this.srcs.length]);
       }
-    } else if (name === 'links') {
-      links = newValue.replace(' ', '').split(',');
     } else if (name === 'width') {
-      width = newValue;
+      this.width = newValue;
+      this.div.style.width = this.width + 'px';
     } else if (name === 'height') {
-      height = newValue;
+      this.height = newValue;
+      this.div.style.height = this.height + 'px';
+    } else if (name === 'border-radius') {
+      this.borderRadius = newValue;
+      this.div.style.borderRadius = this.borderRadius + 'px';
+    } else if (name === 'threshold-sim') {
+      this.thresholdSim = newValue;
     }
 
-    isChangingAttribute = false;
+    this.isChangingAttribute = false;
+
   }
+
+  animate = () => {
+
+    if (VoronoiButton.isDOMContentLoaded && !this.isSetAttributeInitially && !this.isChangingAttribute) {
+
+      this.resetVoronoiData();
+
+      for (let i=0; i<this.nCells; i++) {
+        this.setAttributes(i);
+        this.setClipPath(i);
+      }
+      this.isSetAttributeInitially = true;
+
+    }
+
+    if (VoronoiButton.isDOMContentLoaded && !this.isChangingAttribute) {
+
+      let totalSpeed = 0;
+      for (let i=0; i<this.nCells; i++) {
+        totalSpeed += (this.vel[i][0]**2 + this.vel[i][1]**2)**(1/2);
+      }
+      if (totalSpeed > this.thresholdSim) {
+        physicalSimulation(this.points, this.vel);
+        handlePointsOutOfRange(this.points);
+        this.cells = calcCells(this.points, VoronoiButton.box);
+        for (let i=0; i<this.nCells; i++) {
+          this.setClipPath(i);
+        }
+      }
+    }
+
+    requestAnimationFrame(this.animate);
+  }
+
+  setClipPath(i) {
+    let clipPathText = '';
+    for (let j=0; j<this.cells[i].length; j++) {
+      clipPathText += `${this.cells[i][j][0]*this.width}px ${this.cells[i][j][1]*this.height}px`;
+      if (j!=this.cells[i].length-1) {
+        clipPathText += ', ';
+      }
+      this.imageList[i].setAttribute('style', `clip-path: polygon(${clipPathText});`);
+      this.polygonList[i].setAttribute('style', `clip-path: polygon(${clipPathText});`);
+    }
+  }
+
+  setAttributes(i) {
+    this.imageList[i].setAttributeNS('http://www.w3.org/1999/xlink','href', this.srcs[i%this.srcs.length]);
+    this.imageList[i].style.pointerEvents = 'none';
+    this.polygonList[i].setAttribute('points', `0,0 0,${this.height} ${this.width},${this.height} ${this.width},0`);
+    this.polygonList[i].setAttribute('fill', this.colors[i%this.colors.length]);
+  }
+
+  createElements() {
+    const image = document.createElementNS('http://www.w3.org/2000/svg','image');
+    this.imageList.push(image);
+    this.svg.appendChild(image);
+    const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    this.polygonList.push(polygon);
+    this.svg.appendChild(polygon);
+  }
+
+  removeElements() {
+    const polygon = this.polygonList.pop();
+    const image = this.imageList.pop();
+    this.svg.removeChild(polygon);
+    this.svg.removeChild(image);
+  }
+
+  resetVoronoiData() {
+    let points = [];
+    let vel = [];
+    for (let i=0; i<this.nCells; i++) {
+      points.push([math.random(), math.random()]);
+      vel.push([math.random(), math.random()]);
+    }
+    this.points = points;
+    this.vel = vel;
+    this.cells= calcCells(this.points, VoronoiButton.box);
+  }
+
 }
-VoronoiButton.observedAttributes = ['n', 'srcs', 'colors', 'links', 'width', 'height'];
+VoronoiButton.observedAttributes = ['n-cells', 'colors', 'color-selected', 'srcs', 'width', 'height', 'border-radius', 'threshold-sim'];
 customElements.define('voronoi-button', VoronoiButton);
-
-function animate() {
-
-  if (isDOMContentLoaded && !isSetAttributeInitially && !isChangingAttribute) {
-
-    // generate position and velocity
-    let r = resetParams(nCells);
-    points = r.points;
-    vel = r.vel;
-    cells = r.cells;
-
-    for (let i=0; i<nCells; i++) {
-      setAttributes(i);
-      setClipPath(i);
-    }
-    isSetAttributeInitially = true;
-  }
-
-  if (isDOMContentLoaded && !isChangingAttribute) {
-    physicalSimulation(points, vel);
-    handlePointsOutOfRange(points);
-    cells = calcCells(points, BOX);
-    for (let i=0; i<nCells; i++) {
-      setClipPath(i);
-    }
-  }
-
-  requestAnimationFrame(animate);
-}
-
-function setClipPath(i) {
-  let clipPathText = '';
-  for (let j=0; j<cells[i].length; j++) {
-    clipPathText += `${cells[i][j][0]*width}px ${cells[i][j][1]*height}px`;
-    if (j!=cells[i].length-1) {
-      clipPathText += ', ';
-    }
-    imageList[i].setAttribute('style', `clip-path: polygon(${clipPathText});`);
-    polygonList[i].setAttribute('style', `clip-path: polygon(${clipPathText});`);
-  }
-}
-
-function resetParams(nCells) {
-  let points = [];
-  let vel = [];
-  for (let i=0; i<nCells; i++) {
-    points.push([math.random(), math.random()]);
-    vel.push([0, 0]);
-  }
-  let cells = calcCells(points, BOX);
-  return {
-    'points': points,
-    'vel': vel,
-    'cells': cells,
-  }
-}
-
-function setAttributes(i) {
-  imageList[i].setAttributeNS('http://www.w3.org/1999/xlink','href',srcs[i%srcs.length]);
-  imageList[i].style.pointerEvents = "none";
-  polygonList[i].setAttribute('points', `0,0 0,${height} ${width},${height} ${width},0`);
-  polygonList[i].setAttribute('fill', colors[i%colors.length]);
-}
-
-function createElements() {
-  const image = document.createElementNS('http://www.w3.org/2000/svg','image');
-  imageList.push(image);
-  svg.appendChild(image);
-  const polygon = document.createElementNS("http://www.w3.org/2000/svg", 'polygon');
-  polygonList.push(polygon);
-  svg.appendChild(polygon);
-}
-
-function removeElements() {
-  const polygon = polygonList.pop();
-  const image = imageList.pop();
-  svg.removeChild(polygon);
-  svg.removeChild(image);
-}
-
-
-
-
-
-
-
-
 
 
 

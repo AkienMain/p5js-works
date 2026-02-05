@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voronoi Button</title>
+    <title>VoronoiButton</title>
     <link rel="icon" href="images/favicon_64.png" type="image/x-icon">
     <link rel="stylesheet" type="text/css" href="style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
@@ -12,27 +12,75 @@
   </head>
   <header>
     <div class="hstack justify-content-center text-white">
-      <h1>Voronoi Button</h1>
+      <h1>VoronoiButton</h1>
     </div>
   </header>
   <body>
     <div class="d-flex flex-wrap justify-content-center canvases" >
 
 
-      <!-- Voronoi Button -->
 
-      <div style="width: 400px; height: 400px; border-radius: 20px; overflow: hidden;">
+
+
+
+
+
+
+
+
+
+
+      <!-- VoronoiButton -->
+      <script>
+function example1(index) {
+  let link = "";
+  if (index%3 == 0) link = "https://akienmain.github.io/web-site/";
+  if (index%3 == 1) link = "https://akienmain.github.io/p5js-works/";
+  if (index%3 == 2) link = "https://akienmain.github.io/web-site/";
+  window.open(link, 'popup');
+}
+function example2(index) {
+  window.alert(`index = ${index}`);
+}
+      </script>
+
+      <div>
         <voronoi-button
-          n="6"
+          n-cells="6"
           colors="#FFFFCCAF, #FFCCFFAF, #CCFFFFAF"
           srcs="https://raw.githubusercontent.com/AkienMain/sudoku_solver/refs/heads/master/output/sample.png/output.png, https://github.com/AkienMain/p5js-works/blob/main/work001-voronoi/images/image_001.png?raw=true, https://github.com/AkienMain/yogapose-classification-ocr/blob/main/README_img/004.png?raw=true"
-          links="https://akienmain.github.io/web-site/, https://akienmain.github.io/p5js-works/, https://akienmain.github.io/web-site/"
           width="400"
           height="400"
-          ></voronoi-button>
+          border-radius="20"
+          onclick="example1(this.index)"
+        />
       </div>
+      <div>
+        <voronoi-button
+          n-cells="3"
+          colors="#FFFFCC, #FFCCFF, #CCFFFF"
+          color-selected="#FF3939"
+          width="200"
+          height="60"
+          border-radius="4"
+          threshold-sim="0.1"
+          onclick="example2(this.index)"
+        />
+      </div>
+      <div>
+        <voronoi-button/>
+      </div>
+      <!-- VoronoiButton -->
 
-      <!-- Voronoi Button -->
+
+
+
+
+
+
+
+
+
 
     </div>
     <div class="text-white vstack justify-content-center text-div">
